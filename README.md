@@ -77,6 +77,64 @@ percentile = standard-normal CDF of z
 Percentile curves drawn on each chart correspond to z = ±1.881 (3rd / 97th),
 ±1.036 (15th / 85th), and 0 (50th / median).
 
+## Deploying to Streamlit Cloud (with Neon Postgres)
+
+Streamlit Community Cloud's free tier has an ephemeral filesystem, so a
+local SQLite file would be wiped on every container restart. The app
+ships with a second backend (Postgres via psycopg3) that activates
+automatically when the `DATABASE_URL` environment variable is set.
+Locally the SQLite backend is used; in the cloud, point `DATABASE_URL`
+at a free Neon Postgres database and your profiles + measurements
+persist across restarts.
+
+### 1. Create a Neon database
+
+1. Sign up at <https://neon.tech> (GitHub OAuth works).
+2. Click **New project**. Region — pick whatever's closest. Postgres
+   version — default is fine.
+3. After creation, Neon shows a **connection string** that looks like:
+
+   ```text
+   postgresql://<user>:<password>@<host>/<db>?sslmode=require
+   ```
+
+   Copy the *pooled* one (Neon labels it "Pooled connection") — the
+   free tier's autosuspend works better with the pooler.
+
+### 2. Deploy on Streamlit Community Cloud
+
+1. <https://share.streamlit.io> → **Sign in with GitHub** → **New app**.
+2. Repository `koyipalilmenon/growth-charting-app`, branch `main`,
+   main file path `app.py`.
+3. Before clicking **Deploy**, expand **Advanced settings →
+   Secrets**, and paste:
+
+   ```toml
+   DATABASE_URL = "postgresql://<user>:<password>@<host>/<db>?sslmode=require"
+   ```
+
+4. **Deploy.** First build takes 2–3 minutes (pip installs streamlit,
+   matplotlib, psycopg).
+5. When the app boots it calls `init_db()`, which creates the schema in
+   Neon on first run. From then on, every push to `main` triggers an
+   automatic redeploy; your data survives because it's in Neon, not
+   in the container's filesystem.
+
+### Switching backends
+
+The dispatcher in `growth/store.py` picks a backend at import time:
+
+- **When `DATABASE_URL` is unset** (local dev, tests): SQLite, file
+  `growth.db` next to `app.py`, driver `sqlite3` from the stdlib.
+- **When `DATABASE_URL` is set** (Streamlit Cloud, Neon, anything else):
+  Postgres, driver `psycopg[binary]>=3.1`.
+
+The two implementations live in `growth/_backends/sqlite_backend.py`
+and `growth/_backends/postgres_backend.py`. Public function signatures
+are identical, so `app.py` and the test suite don't need to know which
+one is active. Tests always run against SQLite — they patch
+`growth._backends.sqlite_backend.DB_PATH` to point at a tmp file.
+
 ## Project layout
 
 ```text
@@ -85,8 +143,12 @@ growth/
   lms.py                LMS math (z-score, percentile, inverse)
   data.py               Load WHO LMS tables, interpolate L/M/S at x
   charts.py             Matplotlib chart rendering
-  store.py              SQLite persistence (profiles, children, measurements)
   auth.py               PBKDF2 passcode hashing
+  store.py              Backend dispatcher (picks SQLite vs Postgres)
+  _backends/
+    _types.py           Shared Profile/Child/Measurement dataclasses
+    sqlite_backend.py   SQLite implementation (local dev, tests)
+    postgres_backend.py Postgres implementation (cloud / DATABASE_URL set)
 data/who/               WHO LMS reference tables (CSV, extracted from WHO xlsx)
 ```
 

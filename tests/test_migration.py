@@ -13,6 +13,7 @@ from datetime import date
 import pytest
 
 from growth import store
+from growth._backends import sqlite_backend
 
 
 OLD_SCHEMA = """
@@ -47,7 +48,9 @@ def legacy_db(tmp_path, monkeypatch):
     )
     conn.commit()
     conn.close()
-    monkeypatch.setattr(store, "DB_PATH", db)
+    # Migration is a SQLite-specific concern — patch the backend module
+    # directly so `init_db()` reads the new path.
+    monkeypatch.setattr(sqlite_backend, "DB_PATH", db)
     return db
 
 

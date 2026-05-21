@@ -1,2 +1,5 @@
 streamlit>=1.32
 matplotlib>=3.8
+# Used only when DATABASE_URL is set (i.e. on Streamlit Cloud with Neon).
+# Local dev / tests use SQLite from the stdlib and don't import this.
+psycopg[binary]>=3.1
