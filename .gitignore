@@ -1,0 +1,26 @@
+# Virtual env
+.venv/
+
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local SQLite database — created at runtime, contains user data
+*.db
+
+# Editor settings
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Streamlit secrets (in case any are added later)
+.streamlit/secrets.toml
+
+# The CDC PDF is just a reference document, not needed at runtime
+Growth Charts - CDC Extended BMI-for-Age Growth Charts - Download.pdf
