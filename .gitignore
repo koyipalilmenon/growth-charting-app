@@ -22,5 +22,8 @@ Thumbs.db
 # Streamlit secrets (in case any are added later)
 .streamlit/secrets.toml
 
+# other important credentials
+neon-creds.txt
+
 # The CDC PDF is just a reference document, not needed at runtime
 Growth Charts - CDC Extended BMI-for-Age Growth Charts - Download.pdf
